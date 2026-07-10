@@ -4,7 +4,7 @@ Translates between the harness's canonical format and Anthropic's
 Messages API with tool_use content blocks.
 
 Reasoning control:
-- Opus 4.6, Sonnet 4.6: adaptive thinking via output_config.effort
+- Opus 4.6, Opus 4.8, Sonnet 4.6: adaptive thinking via output_config.effort
   (low/medium/high/max). Omit thinking param entirely to disable.
 - Haiku 4.5: no thinking support (omit thinking param).
 """
@@ -15,7 +15,8 @@ from harness.adapters.base import ModelAdapter, ModelResponse, ToolCall
 
 
 # Models that support adaptive thinking
-ADAPTIVE_MODELS = {"claude-opus-4-6", "claude-sonnet-4-6"}
+ADAPTIVE_MODELS = {"claude-opus-4-6", "claude-opus-4-8", "claude-sonnet-4-6"}
+TEMPERATURE_DEPRECATED_MODELS = {"claude-opus-4-8"}
 
 
 class AnthropicAdapter(ModelAdapter):
@@ -24,6 +25,7 @@ class AnthropicAdapter(ModelAdapter):
     # Max output tokens per model family
     MAX_OUTPUT = {
         "claude-opus-4-6": 128000,
+        "claude-opus-4-8": 16384,
         "claude-sonnet-4-6": 64000,
         "claude-haiku-4-5": 64000,
     }
@@ -61,17 +63,19 @@ class AnthropicAdapter(ModelAdapter):
         kwargs = dict(
             model=self.model,
             max_tokens=self.max_tokens,
-            temperature=self.temperature,
             system=self._system_prompt or "",
             messages=api_messages,
             tools=anthropic_tools,
         )
+        if self.model not in TEMPERATURE_DEPRECATED_MODELS:
+            kwargs["temperature"] = self.temperature
 
         # Adaptive thinking for 4.6 models (only when reasoning_effort is set)
         if self.reasoning_effort and self.model in ADAPTIVE_MODELS:
             kwargs["thinking"] = {"type": "adaptive"}
             kwargs["extra_body"] = {"output_config": {"effort": self.reasoning_effort}}
-            kwargs["temperature"] = 1  # Required when thinking is enabled
+            if self.model not in TEMPERATURE_DEPRECATED_MODELS:
+                kwargs["temperature"] = 1  # Required when thinking is enabled
 
         # Always stream to avoid SDK timeout on large responses
         with self.client.messages.stream(**kwargs) as stream:

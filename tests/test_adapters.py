@@ -30,6 +30,22 @@ class TestAnthropicAdapter:
         msg = self.adapter.make_system_message("You are a helpful assistant.")
         assert msg == {"role": "system", "content": "You are a helpful assistant."}
 
+    def test_opus_4_8_omits_deprecated_temperature(self):
+        from harness.adapters.anthropic import AnthropicAdapter
+
+        adapter = AnthropicAdapter("claude-opus-4-8", temperature=0.7)
+        stream = MagicMock()
+        stream.__enter__.return_value.get_final_message.return_value = MagicMock(
+            content=[], usage=MagicMock(input_tokens=0, output_tokens=0)
+        )
+        adapter.client.messages.stream.return_value = stream
+
+        adapter.chat([{"role": "user", "content": "Hello"}], [])
+
+        kwargs = adapter.client.messages.stream.call_args.kwargs
+        assert "temperature" not in kwargs
+        assert adapter.max_tokens == 16384
+
     def test_make_user_message(self):
         msg = self.adapter.make_user_message("Hello")
         assert msg == {"role": "user", "content": "Hello"}
