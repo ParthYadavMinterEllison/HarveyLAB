@@ -88,6 +88,7 @@ def create_adapter(
     Args:
         reasoning_effort: Controls thinking depth. Values vary by provider:
             Anthropic 4.6: low/medium/high/max (or None to disable thinking)
+            Anthropic Opus 4.8: low/medium/high/xhigh/max
             OpenAI: none/low/medium/high/xhigh
             Google 3.x: minimal/low/medium/high
     """

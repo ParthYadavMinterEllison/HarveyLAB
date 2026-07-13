@@ -26,6 +26,7 @@ RESULTS_DIR = BENCH_ROOT / "results"
 # ── Model pricing ($ per 1M tokens) ──────────────────────────────────
 
 MODEL_PRICING = {
+    "claude-opus-4-8":        {"input_per_m": 5.00,  "output_per_m": 25.00},
     "claude-opus-4-6":        {"input_per_m": 5.00,  "output_per_m": 25.00},
     "claude-sonnet-4-6":      {"input_per_m": 3.00,  "output_per_m": 15.00},
     "claude-haiku-4-5":       {"input_per_m": 1.00,  "output_per_m": 5.00},
@@ -55,6 +56,7 @@ MODEL_PRICING = {
 }
 
 _MODEL_NAMES = {
+    "claude-opus-4-8":               "Opus 4.8",
     "claude-opus-4-6":               "Opus 4.6",
     "claude-sonnet-4-6":             "Sonnet 4.6",
     "claude-haiku-4-5":              "Haiku 4.5",

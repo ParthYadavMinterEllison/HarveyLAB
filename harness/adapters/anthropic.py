@@ -6,6 +6,9 @@ Messages API with tool_use content blocks.
 Reasoning control:
 - Opus 4.6, Sonnet 4.6: adaptive thinking via output_config.effort
   (low/medium/high/max). Omit thinking param entirely to disable.
+- Opus 4.8: adaptive thinking via output_config.effort
+  (low/medium/high/xhigh/max). Sampling parameters (temperature) are not
+  supported and must be omitted from requests.
 - Haiku 4.5: no thinking support (omit thinking param).
 """
 
@@ -15,7 +18,18 @@ from harness.adapters.base import ModelAdapter, ModelResponse, ToolCall
 
 
 # Models that support adaptive thinking
-ADAPTIVE_MODELS = {"claude-opus-4-6", "claude-sonnet-4-6"}
+ADAPTIVE_MODELS = {"claude-opus-4-6", "claude-opus-4-8", "claude-sonnet-4-6"}
+# Models that reject requests containing the temperature parameter
+TEMPERATURE_UNSUPPORTED_MODELS = {"claude-opus-4-8"}
+
+
+def _in_family(model: str, families: set[str]) -> bool:
+    """Match a model ID exactly or as a dated snapshot of a family.
+
+    e.g. both "claude-opus-4-8" and "claude-opus-4-8-20260301" match the
+    "claude-opus-4-8" family.
+    """
+    return any(model == f or model.startswith(f + "-20") for f in families)
 
 
 class AnthropicAdapter(ModelAdapter):
@@ -24,6 +38,7 @@ class AnthropicAdapter(ModelAdapter):
     # Max output tokens per model family
     MAX_OUTPUT = {
         "claude-opus-4-6": 128000,
+        "claude-opus-4-8": 128000,
         "claude-sonnet-4-6": 64000,
         "claude-haiku-4-5": 64000,
     }
@@ -61,17 +76,19 @@ class AnthropicAdapter(ModelAdapter):
         kwargs = dict(
             model=self.model,
             max_tokens=self.max_tokens,
-            temperature=self.temperature,
             system=self._system_prompt or "",
             messages=api_messages,
             tools=anthropic_tools,
         )
+        if not _in_family(self.model, TEMPERATURE_UNSUPPORTED_MODELS):
+            kwargs["temperature"] = self.temperature
 
-        # Adaptive thinking for 4.6 models (only when reasoning_effort is set)
-        if self.reasoning_effort and self.model in ADAPTIVE_MODELS:
+        # Adaptive thinking (only when reasoning_effort is set)
+        if self.reasoning_effort and _in_family(self.model, ADAPTIVE_MODELS):
             kwargs["thinking"] = {"type": "adaptive"}
             kwargs["extra_body"] = {"output_config": {"effort": self.reasoning_effort}}
-            kwargs["temperature"] = 1  # Required when thinking is enabled
+            if not _in_family(self.model, TEMPERATURE_UNSUPPORTED_MODELS):
+                kwargs["temperature"] = 1  # Required when thinking is enabled
 
         # Always stream to avoid SDK timeout on large responses
         with self.client.messages.stream(**kwargs) as stream:
