@@ -197,7 +197,12 @@ def discover_tasks(task_arg: str) -> list[str]:
 # ── Model Matrix ──────────────────────────────────────────────────────
 
 SWEEP_MATRIX = [
-    # Anthropic — adaptive thinking via output_config.effort (4.6 models)
+    # Anthropic — adaptive thinking via output_config.effort
+    {"model": "claude-opus-4-8",           "reasoning": "low"},
+    {"model": "claude-opus-4-8",           "reasoning": "medium"},
+    {"model": "claude-opus-4-8",           "reasoning": "high"},
+    {"model": "claude-opus-4-8",           "reasoning": "xhigh"},
+    {"model": "claude-opus-4-8",           "reasoning": "max"},
     {"model": "claude-opus-4-6",           "reasoning": "low"},
     {"model": "claude-opus-4-6",           "reasoning": "medium"},
     {"model": "claude-opus-4-6",           "reasoning": "high"},
